@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/panjf2000/ants/v2"
 	"go-design-pattern-prac/middleware"
+	"net/http"
 	"runtime"
 	"sync"
 	"time"
@@ -24,6 +26,7 @@ func main() {
 	// param: 路径参数节点 单段动态参数 :id
 	// catchAll: 匹配剩余路径的所有部分，类似*action
 	// wildChild: true代表该节点的子节点有通配符，例如 :id、*action
+	http.ListenAndServe()
 	engine := gin.Default()
 	routes := engine.Group("/aa").Use(middleware.ApiAuth())
 	routes.POST("/pong", handler)
@@ -37,6 +40,7 @@ func main() {
 	//for {
 	//
 	//}
+	//test4()
 }
 
 func test2() {
@@ -59,7 +63,15 @@ func test1() {
 func test3() {
 	runtime.Gosched()
 	pool := sync.Pool{}
-	newPool, err := ants.NewPool()
+	newPool, _ := ants.NewPool()
 	newPool.Submit()
+
+}
+
+func test4() {
+	ctxTimeout, timeCancelFunc := context.WithTimeout(context.Background(), time.Second*10000)
+	timeCancelFunc()
+	ctxCancel, _ := context.WithCancel(ctxTimeout)
+	fmt.Println(ctxCancel)
 
 }
