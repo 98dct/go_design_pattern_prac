@@ -22,10 +22,14 @@ func TestPool1(t *testing.T) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(string(res[:n]))               // h
+	fmt.Println(string(res[:n]))               // hello dct
 	fmt.Println(buffer.Len(), buffer.String()) // 0, ""
 
 	// 回收buffer对象
+	// 需要判断buffer对象的大小，如果超过64kb就不要回收了，否则pool可能不会回收大对象
+	if buffer.Cap() > 1<<16 {
+		return
+	}
 	buffer.Reset()
 	pool.Put(buffer)
 }
