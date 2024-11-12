@@ -3,6 +3,7 @@ package goroutine_channnel
 import (
 	"fmt"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 )
@@ -67,6 +68,7 @@ func Test2(t *testing.T) {
 
 }
 
+// goroutine切换耗时
 func TestSwitchTime(t *testing.T) {
 	runtime.GOMAXPROCS(1) // 限制为单线程调度
 
@@ -88,6 +90,66 @@ func TestSwitchTime(t *testing.T) {
 	// 计算切换时间
 	elapsed := time.Since(start)
 	fmt.Printf("Average switch time: %v\n", elapsed/2000000)
+}
+
+// goroutine内存消耗
+func TestMemConsume(t *testing.T) {
+	memConsumed := func() uint64 {
+		runtime.GC()
+		var s runtime.MemStats
+		runtime.ReadMemStats(&s)
+		return s.Sys
+	}
+
+	var c <-chan interface{}
+	var wg sync.WaitGroup
+	noop := func() {
+		wg.Done()
+		<-c
+	}
+
+	const numGoroutines = 1e4
+	wg.Add(numGoroutines)
+	before := memConsumed()
+	for i := numGoroutines; i > 0; i-- {
+		// 用于不会退出的goroutine
+		go noop()
+	}
+	wg.Wait()
+	after := memConsumed()
+	fmt.Printf("%.3fkb", float64(after-before)/numGoroutines/1000)
+}
+
+// goroutine切换耗时
+func BenchmarkGoroutineSwitch(b *testing.B) {
+
+	runtime.GOMAXPROCS(1)
+	var wg sync.WaitGroup
+	begin := make(chan struct{})
+	c := make(chan struct{})
+
+	var token struct{}
+	sender := func() {
+		defer wg.Done()
+		<-begin
+		for i := 0; i < b.N; i++ {
+			c <- token
+		}
+	}
+	receiver := func() {
+		defer wg.Done()
+		<-begin
+		for i := 0; i < b.N; i++ {
+			<-c
+		}
+	}
+
+	wg.Add(2)
+	go sender()
+	go receiver()
+	b.StartTimer()
+	close(begin)
+	wg.Wait()
 }
 
 // channel操作出现异常的几种情况：
